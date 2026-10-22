@@ -22,9 +22,15 @@ const injecting = new Set();
 
 chrome.runtime.onMessage.addListener((message, sender) => {
   if (message?.type === "gesture") {
-    deliver(sender.tab?.id, { type: "scroll", direction: scrollDirection(message.name) }).catch((error) => {
+    const senderTabId = sender.tab?.id;
+    deliver(senderTabId, { type: "scroll", direction: scrollDirection(message.name) }).catch((error) => {
       console.error(error);
     });
+    if (message.name === "Closed_Fist") {
+      goBack(senderTabId).catch((error) => console.error(error));
+    } else if (message.name === "ILoveYou") {
+      activateNextTab(senderTabId).catch((error) => console.error(error));
+    }
     return;
   }
 
@@ -44,8 +50,37 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 
 function scrollDirection(name) {
   if (name === "Thumb_Up") return "up";
-  if (name === "Closed_Fist") return "down";
+  if (name === "Thumb_Down") return "down";
   return "stop";
+}
+
+async function goBack(senderTabId) {
+  const tab = await browserTab(senderTabId);
+  if (!tab) return;
+  await chrome.tabs.goBack(tab.id);
+}
+
+async function activateNextTab(senderTabId) {
+  const tab = await browserTab(senderTabId);
+  if (!tab) return;
+
+  const tabs = await chrome.tabs.query({ windowId: tab.windowId });
+  if (tabs.length < 2) return;
+
+  tabs.sort((a, b) => a.index - b.index);
+  const index = Math.max(0, tabs.findIndex((item) => item.id === tab.id));
+  const next = tabs[(index + 1) % tabs.length];
+  if (!next || next.id === tab.id) return;
+  await chrome.tabs.update(next.id, { active: true });
+}
+
+async function browserTab(senderTabId) {
+  const anchorId = await scrollTargetTabId(senderTabId);
+  if (anchorId == null) return null;
+
+  const anchor = await chrome.tabs.get(anchorId);
+  const [active] = await chrome.tabs.query({ windowId: anchor.windowId, active: true });
+  return active ?? anchor;
 }
 
 async function deliver(senderTabId, message) {

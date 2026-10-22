@@ -63,7 +63,7 @@ async function openCameraWindow() {
   const stored = await chrome.storage.session.get("cameraWindowId");
   if (typeof stored.cameraWindowId === "number") {
     try {
-      await chrome.windows.update(stored.cameraWindowId, { focused: true });
+      await chrome.windows.update(stored.cameraWindowId, { focused: true, height: 960 });
       return;
     } catch {
       await chrome.storage.session.remove("cameraWindowId");
@@ -74,7 +74,7 @@ async function openCameraWindow() {
     url: chrome.runtime.getURL("camera.html"),
     type: "popup",
     width: 400,
-    height: 760,
+    height: 960,
     left: 24,
     top: 80,
     focused: true,

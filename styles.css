@@ -129,7 +129,8 @@ body.camera main {
 
 body.camera .preview,
 body.camera .card,
-body.camera .actions {
+body.camera .actions,
+body.camera .guide {
   margin-top: 16px;
 }
 

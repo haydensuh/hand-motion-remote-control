@@ -12,6 +12,15 @@
       <div class="preview">
         <video id="webcam" autoplay playsinline muted></video>
       </div>
+      <section class="card">
+        <p class="label">Current gesture</p>
+        <p id="gesture"></p>
+      </section>
+      <p id="status">Press Start camera, then choose Allow.</p>
+      <div class="actions">
+        <button id="start" class="primary" type="button">Start camera</button>
+        <button id="settings" class="weak" type="button" hidden>Open Chrome camera settings</button>
+      </div>
       <table class="guide">
         <thead>
           <tr>
@@ -29,7 +38,7 @@
             <td>Click</td>
           </tr>
           <tr>
-            <td>Fist</td>
+            <td>Thumb down</td>
             <td>Scroll down</td>
           </tr>
           <tr>
@@ -40,17 +49,16 @@
             <td>Open palm</td>
             <td>Stop scrolling</td>
           </tr>
+          <tr>
+            <td>Fist</td>
+            <td>Back</td>
+          </tr>
+          <tr>
+            <td>Thumb, index, pinky</td>
+            <td>Next tab</td>
+          </tr>
         </tbody>
       </table>
-      <section class="card">
-        <p class="label">Current gesture</p>
-        <p id="gesture"></p>
-      </section>
-      <p id="status">Press Start camera, then choose Allow.</p>
-      <div class="actions">
-        <button id="start" class="primary" type="button">Start camera</button>
-        <button id="settings" class="weak" type="button" hidden>Open Chrome camera settings</button>
-      </div>
     </main>
     <script type="module" src="camera.js"></script>
   </body>

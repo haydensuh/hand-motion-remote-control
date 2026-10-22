@@ -7,9 +7,11 @@ let direction = "stop";
 let frame = 0;
 let target = null;
 let cursor = null;
+let aim = null;
 let lastFinger = null;
 let clickWas = false;
 let cursorElement = null;
+let nativeCursorStyle = null;
 
 if (!globalThis.__handMotionScroll) {
   globalThis.__handMotionScroll = true;
@@ -27,8 +29,9 @@ if (!globalThis.__handMotionScroll) {
 
 function setDirection(next) {
   if (next === direction) return;
+  const reversing = direction !== "stop" && next !== "stop";
   direction = next;
-  target = null;
+  if (!reversing) target = null;
   if (direction !== "stop" && frame === 0) {
     frame = requestAnimationFrame(tick);
   }
@@ -38,11 +41,11 @@ function tick() {
   frame = 0;
   if (direction === "stop") return;
 
-  if (!target || !target.isConnected || !canScroll(target, direction)) {
+  if (!target || !target.isConnected) {
     target = findScrollTarget(direction);
   }
 
-  if (target) {
+  if (target && canScroll(target, direction)) {
     const delta = direction === "up" ? -SCROLL_STEP : SCROLL_STEP;
     target.scrollBy(0, delta);
   }
@@ -51,17 +54,69 @@ function tick() {
 }
 
 function findScrollTarget(nextDirection) {
-  const center = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-  let node = center instanceof Element ? center : null;
+  const point = aim ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const underPoint = scrollableFromPoint(point.x, point.y, nextDirection);
+  if (underPoint) return underPoint;
 
-  while (node) {
-    if (canScroll(node, nextDirection)) return node;
-    node = node.parentElement;
+  let best = null;
+  let bestScore = 0;
+  for (const element of listScrollable(document, nextDirection)) {
+    const score = scrollScore(element, point.x, point.y);
+    if (score > bestScore) {
+      best = element;
+      bestScore = score;
+    }
   }
 
-  const root = document.scrollingElement;
-  if (root && canScroll(root, nextDirection)) return root;
-  return root;
+  return best ?? document.scrollingElement;
+}
+
+function scrollableFromPoint(x, y, nextDirection) {
+  let node = document.elementFromPoint(x, y);
+
+  while (node instanceof Element) {
+    if (canScroll(node, nextDirection) && isUsablePane(node)) return node;
+    const root = node.getRootNode();
+    node = node.parentElement || (root instanceof ShadowRoot ? root.host : null);
+  }
+
+  return null;
+}
+
+function isUsablePane(element) {
+  const rect = element.getBoundingClientRect();
+  const visibleWidth = overlap(rect.left, rect.right, 0, window.innerWidth);
+  const visibleHeight = overlap(rect.top, rect.bottom, 0, window.innerHeight);
+  return visibleWidth >= 48 && visibleHeight >= 48;
+}
+
+function listScrollable(root, nextDirection, found = []) {
+  const nodes = root.querySelectorAll ? root.querySelectorAll("*") : [];
+  for (const element of nodes) {
+    if (canScroll(element, nextDirection)) found.push(element);
+    if (element.shadowRoot) listScrollable(element.shadowRoot, nextDirection, found);
+  }
+  return found;
+}
+
+function scrollScore(element, centerX, centerY) {
+  const rect = element.getBoundingClientRect();
+  const visibleWidth = overlap(rect.left, rect.right, 0, window.innerWidth);
+  const visibleHeight = overlap(rect.top, rect.bottom, 0, window.innerHeight);
+  if (visibleWidth < 48 || visibleHeight < 48) return 0;
+
+  let score = visibleWidth * visibleHeight;
+  const containsCenter =
+    centerX >= rect.left && centerX <= rect.right && centerY >= rect.top && centerY <= rect.bottom;
+  if (containsCenter) score *= 1.2;
+  if (visibleWidth < window.innerWidth * 0.45) score *= 0.35;
+  const length = element.scrollHeight / Math.max(element.clientHeight, 1);
+  score *= Math.min(Math.max(length, 1), 6);
+  return score;
+}
+
+function overlap(start, end, viewStart, viewEnd) {
+  return Math.max(0, Math.min(end, viewEnd) - Math.max(start, viewStart));
 }
 
 function canScroll(element, nextDirection) {
@@ -80,10 +135,13 @@ function canScroll(element, nextDirection) {
 function movePointer(message) {
   if (!message.active || typeof message.x !== "number" || typeof message.y !== "number") {
     hideCursor();
+    setNativeCursorHidden(false);
     lastFinger = null;
     clickWas = false;
     return;
   }
+
+  setNativeCursorHidden(true);
 
   if (!cursor) {
     cursor = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
@@ -105,10 +163,21 @@ function movePointer(message) {
     lastFinger = null;
   }
 
+  aim = { x: cursor.x, y: cursor.y };
   showCursor();
 
   if (message.click && !clickWas) clickAt(cursor.x, cursor.y);
   clickWas = Boolean(message.click);
+}
+
+function setNativeCursorHidden(hidden) {
+  if (!nativeCursorStyle) {
+    nativeCursorStyle = document.createElement("style");
+    nativeCursorStyle.textContent =
+      "html.hand-motion-pointing, html.hand-motion-pointing * { cursor: none !important; }";
+    (document.head || document.documentElement).appendChild(nativeCursorStyle);
+  }
+  document.documentElement.classList.toggle("hand-motion-pointing", hidden);
 }
 
 function showCursor() {
