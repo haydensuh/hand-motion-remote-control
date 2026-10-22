@@ -1,113 +1,90 @@
-import {
-  FilesetResolver,
-  GestureRecognizer,
-} from "./node_modules/@mediapipe/tasks-vision/vision_bundle.mjs";
-
-const video = document.querySelector("#webcam");
 const startButton = document.querySelector("#start");
 const status = document.querySelector("#status");
 const gestureOutput = document.querySelector("#gesture");
 
-const MISSING_FRAME_LIMIT = 10;
+let cameraPermission = "unknown";
 
-let recognizer;
-let lastGesture = null;
-let missingFrames = 0;
-let lastTimestamp = -1;
-let running = false;
+startButton.disabled = true;
+status.textContent = "카메라 권한을 확인하는 중입니다.";
 
-startButton.addEventListener("click", () => {
-  start().catch((error) => {
-    console.error(error);
-    status.textContent =
-      "카메라를 시작하지 못했습니다. 카메라 권한을 허용했는지 확인해 주세요.";
+navigator.permissions
+  .query({ name: "camera" })
+  .then((result) => {
+    cameraPermission = result.state;
+    result.onchange = () => {
+      cameraPermission = result.state;
+      describePermission();
+    };
+    describePermission();
+  })
+  .catch(() => {
+    cameraPermission = "prompt";
+    describePermission();
+  })
+  .finally(() => {
     startButton.disabled = false;
   });
+
+startButton.addEventListener("click", () => {
+  if (cameraPermission === "denied") {
+    openCameraSettings();
+    status.textContent =
+      "카메라가 차단되어 있습니다. 열린 설정에서 이 확장 프로그램의 카메라를 허용한 뒤 다시 눌러 주세요.";
+    return;
+  }
+
+  openCameraWindow()
+    .then(() => {
+      status.textContent =
+        "카메라 창은 열어 두세요. 웹페이지 탭으로 돌아가면 검지로 커서를 움직이고, 브이를 하면 클릭합니다.";
+    })
+    .catch((error) => {
+      console.error(error);
+      status.textContent = "카메라 창을 열지 못했습니다.";
+    });
 });
 
-async function start() {
-  startButton.disabled = true;
-  status.textContent = "손 인식 모델을 불러오는 중입니다.";
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type !== "gesture" || message.source === "sidepanel") return;
+  gestureOutput.textContent = message.name ?? "";
+  if (message.name === "Open_Palm") console.log("Open_Palm");
+});
 
-  if (!recognizer) {
-    recognizer = await createRecognizer();
-  }
-
-  status.textContent = "카메라 연결을 요청합니다.";
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: {
-      facingMode: "user",
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-    },
-  });
-  video.srcObject = stream;
-  await video.play();
-
+function describePermission() {
   status.textContent =
-    "손을 카메라에 보여 주세요. 손바닥을 펴면 이 패널의 콘솔에 Open_Palm이 표시됩니다.";
-
-  if (!running) {
-    running = true;
-    requestAnimationFrame(predict);
-  }
+    cameraPermission === "granted"
+      ? "카메라 시작을 누르면 작은 카메라 창이 열립니다. 탭을 바꿔도 그 창의 카메라는 유지됩니다."
+      : "카메라 시작을 누르면 카메라 창이 열립니다. 그 창에서 카메라를 허용해 주세요.";
 }
 
-async function createRecognizer() {
-  const fileset = await FilesetResolver.forVisionTasks(
-    chrome.runtime.getURL("node_modules/@mediapipe/tasks-vision/wasm"),
-  );
-
-  return GestureRecognizer.createFromOptions(fileset, {
-    baseOptions: {
-      modelAssetPath: chrome.runtime.getURL("models/gesture_recognizer.task"),
-      delegate: "CPU",
-    },
-    runningMode: "VIDEO",
-    numHands: 1,
-    cannedGesturesClassifierOptions: {
-      scoreThreshold: 0.5,
-    },
-  });
-}
-
-function predict() {
-  if (
-    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-    video.videoWidth > 0
-  ) {
-    const category = recognizeCurrentFrame();
-    const name = category?.categoryName ?? null;
-
-    if (name && name !== "None") {
-      gestureOutput.textContent = name;
-      missingFrames = 0;
-      if (name === "Open_Palm" && lastGesture !== "Open_Palm") {
-        console.log("Open_Palm");
-      }
-      lastGesture = name;
-    } else if (++missingFrames > MISSING_FRAME_LIMIT) {
-      gestureOutput.textContent = "";
-      lastGesture = null;
+async function openCameraWindow() {
+  const stored = await chrome.storage.session.get("cameraWindowId");
+  if (typeof stored.cameraWindowId === "number") {
+    try {
+      await chrome.windows.update(stored.cameraWindowId, { focused: true });
+      return;
+    } catch {
+      await chrome.storage.session.remove("cameraWindowId");
     }
   }
 
-  requestAnimationFrame(predict);
-}
-
-function recognizeCurrentFrame() {
-  try {
-    const result = recognizer.recognizeForVideo(video, nextTimestamp());
-    return result.gestures[0]?.[0] ?? null;
-  } catch (error) {
-    console.error(error);
-    return null;
+  const created = await chrome.windows.create({
+    url: chrome.runtime.getURL("camera.html"),
+    type: "popup",
+    width: 400,
+    height: 620,
+    left: 24,
+    top: 80,
+    focused: true,
+  });
+  if (created?.id != null) {
+    await chrome.storage.session.set({ cameraWindowId: created.id });
   }
 }
 
-function nextTimestamp() {
-  const now = Math.round(performance.now());
-  lastTimestamp = now <= lastTimestamp ? lastTimestamp + 1 : now;
-  return lastTimestamp;
+function openCameraSettings() {
+  const site = encodeURIComponent(`chrome-extension://${chrome.runtime.id}/`);
+  chrome.tabs.create({
+    url: `chrome://settings/content/siteDetails?site=${site}`,
+  });
 }
