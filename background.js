@@ -1,8 +1,16 @@
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => {
-    console.error(error);
-  });
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch((error) => {
+  console.error(error);
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  if (tab) {
+    rememberFromTab(tab);
+    if (typeof tab.windowId === "number") {
+      chrome.storage.session.set({ browserWindowId: tab.windowId });
+    }
+  }
+  openCameraWindow().catch((error) => console.error(error));
+});
 
 chrome.tabs.onActivated.addListener((info) => {
   rememberWebTab(info.tabId);
@@ -21,6 +29,11 @@ chrome.tabs.query({ active: true, lastFocusedWindow: true }).then((tabs) => {
 const injecting = new Set();
 
 chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type === "return-to-page") {
+    focusBrowserWindow().catch((error) => console.error(error));
+    return;
+  }
+
   if (message?.type === "gesture") {
     const senderTabId = sender.tab?.id;
     deliver(senderTabId, { type: "scroll", direction: scrollDirection(message.name) }).catch((error) => {
@@ -65,13 +78,16 @@ async function activateNextTab(senderTabId) {
   if (!tab) return;
 
   const tabs = await chrome.tabs.query({ windowId: tab.windowId });
-  if (tabs.length < 2) return;
+  const ordered = tabs.sort((a, b) => a.index - b.index);
+  if (ordered.length < 2) return;
 
-  tabs.sort((a, b) => a.index - b.index);
-  const index = Math.max(0, tabs.findIndex((item) => item.id === tab.id));
-  const next = tabs[(index + 1) % tabs.length];
+  const next = ordered.find((item) => item.index > tab.index) ?? ordered[0];
   if (!next || next.id === tab.id) return;
+
   await chrome.tabs.update(next.id, { active: true });
+  if (next.id === ordered[0].id) {
+    await chrome.windows.update(next.windowId, { focused: true });
+  }
 }
 
 async function browserTab(senderTabId) {
@@ -114,6 +130,37 @@ async function scrollTargetTabId(senderTabId) {
 
   if (isWebTab(active)) return active.id;
   return null;
+}
+
+async function focusBrowserWindow() {
+  const stored = await chrome.storage.session.get("browserWindowId");
+  if (typeof stored.browserWindowId !== "number") return;
+  await chrome.windows.update(stored.browserWindowId, { focused: true });
+}
+
+async function openCameraWindow() {
+  const stored = await chrome.storage.session.get("cameraWindowId");
+  if (typeof stored.cameraWindowId === "number") {
+    try {
+      await chrome.windows.update(stored.cameraWindowId, { focused: true, height: 960 });
+      return;
+    } catch {
+      await chrome.storage.session.remove("cameraWindowId");
+    }
+  }
+
+  const created = await chrome.windows.create({
+    url: chrome.runtime.getURL("camera.html"),
+    type: "popup",
+    width: 400,
+    height: 960,
+    left: 24,
+    top: 80,
+    focused: true,
+  });
+  if (created?.id != null) {
+    await chrome.storage.session.set({ cameraWindowId: created.id });
+  }
 }
 
 function rememberWebTab(tabId) {

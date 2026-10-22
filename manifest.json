@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "minimum_chrome_version": "116",
   "action": {
-    "default_title": "Open hand control",
+    "default_title": "Open camera",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

@@ -29,37 +29,40 @@ startButton.addEventListener("click", () => {
   requestStart();
 });
 
-navigator.permissions
-  .query({ name: "camera" })
-  .then((result) => {
-    if (result.state === "granted") requestStart();
-  })
-  .catch(() => {});
-
 function requestStart() {
   if (starting) return;
   starting = true;
   startButton.disabled = true;
+  startButton.textContent = "Starting…";
   settingsButton.hidden = true;
+
+  const cameraPromise = navigator.mediaDevices.getUserMedia(CAMERA_CONSTRAINTS);
+  cameraPromise
+    .then(() => {
+      chrome.runtime.sendMessage({ type: "return-to-page" }).catch(() => {});
+    })
+    .catch(() => {});
+
   startSession({
     video,
     status,
     gestureOutput,
-    cameraPromise: navigator.mediaDevices.getUserMedia(CAMERA_CONSTRAINTS),
+    cameraPromise,
     source: "camera-window",
   })
     .then(() => {
       startButton.textContent = "Recognizing";
     })
     .catch((error) => {
-      starting = false;
       showStartError(error);
     });
 }
 
 function showStartError(error) {
   console.error(error);
+  starting = false;
   startButton.disabled = false;
+  startButton.textContent = "Start camera";
   status.textContent = cameraErrorText(error);
   settingsButton.hidden = error?.name !== "NotAllowedError";
 }
