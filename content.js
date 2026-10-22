@@ -137,8 +137,8 @@ function ensureCursor() {
     "margin:-9px 0 0 -9px",
     "border:2px solid #fff",
     "border-radius:50%",
-    "background:rgba(20,20,20,.4)",
-    "box-shadow:0 0 0 1px #111",
+    "background:#3182f6",
+    "box-shadow:0 4px 12px rgba(49,130,246,.45)",
     "z-index:2147483647",
     "pointer-events:none",
     "transform:translate(-100px,-100px)",
@@ -161,9 +161,9 @@ function clickAt(x, y) {
 
 function flashCursor() {
   if (!cursorElement) return;
-  cursorElement.style.background = "rgba(255,255,255,.9)";
+  cursorElement.style.background = "#ffffff";
   setTimeout(() => {
-    if (cursorElement) cursorElement.style.background = "rgba(20,20,20,.4)";
+    if (cursorElement) cursorElement.style.background = "#3182f6";
   }, 140);
 }
 

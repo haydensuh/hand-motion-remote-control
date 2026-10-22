@@ -1,41 +1,23 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>손 동작 인식</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 16px;
-        font-family: system-ui, sans-serif;
-        color: #1c1c1c;
-        background: #f6f6f4;
-      }
-
-      button {
-        width: 100%;
-        margin-top: 12px;
-        padding: 10px 12px;
-        font: inherit;
-      }
-
-      #status,
-      #gesture {
-        margin: 12px 0 0;
-        word-break: break-word;
-      }
-
-      #gesture {
-        min-height: 1.4em;
-        font-size: 1.25rem;
-        font-weight: 600;
-      }
-    </style>
+    <title>Hand control</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <button id="start" type="button">카메라 시작</button>
-    <p id="status">카메라를 시작하면 손 모양을 인식합니다.</p>
-    <p id="gesture"></p>
+    <main>
+      <h1>Hand control</h1>
+      <p class="lead">Point to move the cursor. Make a V to click.</p>
+      <section class="card">
+        <p class="label">Current gesture</p>
+        <p id="gesture"></p>
+      </section>
+      <p id="status">Start the camera to recognize your hand.</p>
+      <div class="actions">
+        <button id="start" class="primary" type="button">Start camera</button>
+      </div>
+    </main>
     <script type="module" src="sidepanel.js"></script>
   </body>
 </html>

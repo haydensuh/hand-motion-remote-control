@@ -2,6 +2,7 @@ import {
   FilesetResolver,
   GestureRecognizer,
 } from "./node_modules/@mediapipe/tasks-vision/vision_bundle.mjs";
+import { gestureLabel } from "./labels.js";
 
 export const CAMERA_CONSTRAINTS = {
   audio: false,
@@ -35,11 +36,11 @@ let pointerSilent = false;
 
 export function cameraErrorText(error) {
   if (error?.name === "NotAllowedError") {
-    return "카메라 권한이 거부되었습니다. 크롬 안내에서 허용을 선택해 주세요. macOS라면 시스템 설정 → 개인 정보 보호 및 보안 → 카메라에서 Google Chrome이 켜져 있어야 합니다.";
+    return "Camera permission was denied. Choose Allow in the Chrome prompt. On macOS, also turn on Google Chrome in System Settings, Privacy & Security, Camera.";
   }
 
   const detail = [error?.name, error?.message].filter(Boolean).join(": ");
-  return detail ? `시작하지 못했습니다. ${detail}` : "시작하지 못했습니다.";
+  return detail ? `Couldn't start. ${detail}` : "Couldn't start.";
 }
 
 export function startSession({ video, status, gestureOutput, cameraPromise, source }) {
@@ -59,16 +60,16 @@ export function startSession({ video, status, gestureOutput, cameraPromise, sour
 }
 
 async function runSession({ video, status, gestureOutput, cameraPromise, source }) {
-  status.textContent = "카메라를 연결하는 중입니다.";
+  status.textContent = "Connecting the camera.";
   const stream = await cameraPromise;
   video.srcObject = stream;
   await video.play();
 
-  status.textContent = "손 인식 모델을 불러오는 중입니다.";
+  status.textContent = "Loading the hand model.";
   const recognizer = await getRecognizer();
 
   status.textContent =
-    "검지로 커서를 움직이고, 브이를 하면 클릭합니다. 주먹은 아래로, 엄지 위는 위로 스크롤되고 손바닥은 멈춥니다.";
+    "Show your hand to the camera.";
   video.addEventListener("pause", () => {
     if (video.srcObject && document.visibilityState === "visible") {
       video.play().catch(() => {});
@@ -127,7 +128,7 @@ function predict(video, recognizer, gestureOutput, source) {
   if (sample?.index) {
     missingFrames = 0;
     if (sample.name && sample.name !== "None") {
-      if (gestureOutput) gestureOutput.textContent = sample.name;
+      if (gestureOutput) gestureOutput.textContent = gestureLabel(sample.name);
       noteGesture(sample.name, source);
     }
   } else if (++missingFrames === MISSING_FRAME_LIMIT + 1) {

@@ -49,7 +49,7 @@ function requestStart() {
     source: "camera-window",
   })
     .then(() => {
-      startButton.textContent = "인식 중";
+      startButton.textContent = "Recognizing";
     })
     .catch((error) => {
       starting = false;
