@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Marquee promo</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 1400px;
+        height: 560px;
+        overflow: hidden;
+        background: #ffffff;
+        font-family: "Apple SD Gothic Neo", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        letter-spacing: -0.03em;
+      }
+      .banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 72px;
+        width: 1400px;
+        height: 560px;
+        padding: 0 80px;
+      }
+      svg { display: block; width: 220px; height: 220px; flex: none; }
+      h1 {
+        margin: 0;
+        color: #191f28;
+        font-size: 64px;
+        line-height: 1.15;
+        font-weight: 700;
+        letter-spacing: -0.045em;
+      }
+      p {
+        margin: 16px 0 0;
+        color: #4e5968;
+        font-size: 28px;
+        line-height: 1.4;
+        font-weight: 500;
+      }
+      ul {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 28px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      li {
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: #f2f4f6;
+        color: #191f28;
+        font-size: 18px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+        <rect width="128" height="128" rx="32" fill="#3182F6"/>
+        <g fill="#FFFFFF">
+          <rect x="36" y="34" width="14" height="40" rx="7"/>
+          <rect x="56" y="24" width="14" height="50" rx="7"/>
+          <rect x="76" y="32" width="14" height="42" rx="7"/>
+          <rect x="30" y="66" width="68" height="34" rx="17"/>
+          <circle cx="34" cy="84" r="11"/>
+        </g>
+      </svg>
+      <div>
+        <h1>Hand Motion<br />Remote Control</h1>
+        <p>Control web pages with hand gestures.</p>
+        <ul>
+          <li>Move cursor</li>
+          <li>Click</li>
+          <li>Scroll</li>
+          <li>Back</li>
+          <li>Next tab</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
