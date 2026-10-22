@@ -1,0 +1,9 @@
+{
+  "name": "hand-motion-remote-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Recognize hand gestures from the webcam in a Chrome side panel.",
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.1.1"
+  }
+}

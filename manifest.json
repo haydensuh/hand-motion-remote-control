@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Hand Motion Remote Control",
+  "description": "웹캠으로 손 모양을 인식합니다.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_title": "손 동작 인식 열기"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": ["sidePanel"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}
